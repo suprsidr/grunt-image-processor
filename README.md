@@ -1,6 +1,6 @@
 # grunt-image-processor
 
-> Expanded from https://github.com/zauni/pngmin - Grunt plugin to compress png images with pngquant and jpg images with jpegtran. Also build resizes for jpg and png.",
+> Expanded from https://github.com/zauni/pngmin - Grunt plugin to compress png images with pngquant and jpg images with jpegtran. Also build resizes for jpg and png.
 
 ## Getting Started
 This plugin requires Grunt `~0.4.1`
