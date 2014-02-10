@@ -26,54 +26,50 @@ module.exports = function(grunt) {
      * @param  {Function} callback Callback function
      */
     function compile(file, callback) {
-      var src = file.src, ext = path.extname(src), dest, queue;
+      var src = file.src, ext = path.extname(src), dest, queue, i = 0;
       
-      queue = grunt.util.async.queue(function(f){
-        if (grunt.file.exists(f.dest) && !options.force) {
-          grunt.log.writeln('Resizing skipped on ' + f.dest.cyan + ' because it exists already. (force option is false!)');
-          callback();
-          return;
+      function build(){
+        dest = path.join(file.dest, path.basename(src, ext) + '-' + options.sizes[i].toString() + ext)
+        if (grunt.file.exists(dest) && !options.force) {
+          grunt.log.writeln('Resizing skipped on ' + dest.cyan + ' because it exists already. (force option is false!)');
+          if(i < options.sizes.length - 1){
+            i++;
+            build();
+            return;
+          } else {
+            callback();
+            return;
+          }
         } else {
           // this simple line makes sure the destination exists
-          grunt.file.write(f.dest, '', ['--no-write']);
+          grunt.file.write(dest, '', ['--no-write']);
         }
         
-        grunt.log.writeln('Resizing: ' + f.src.cyan + ' to: ' + f.dest.cyan );
+        grunt.log.writeln('Resizing: ' + src.cyan + ' to: ' + dest.cyan );
         im.resize({
-          srcPath : f.src,
-          dstPath : f.dest,
+          srcPath : src,
+          dstPath : dest,
           quality : options.quality,
           progressive : options.progressive,
           strip: options.strip,
-          width : f.size
+          width : options.sizes[i]
   
         }, function(err, stdout, stderr) {
           if (err) {
             callback(err);
             return;
+          } else {
+            if(i < options.sizes.length - 1){
+              i++;
+              build();
+            } else {
+              callback();
+            }
           }
-          callback();
         });
-      }, 8);
-
-      queue.drain = function() {
-          done();
-      };
-  
-      options.sizes.forEach(function(size) {
-        var item = {
-          src: src,
-          dest: path.join(file.dest, path.basename(src, ext) + '-' + size.toString() + ext),
-          size: size
-        }
-        queue.push(item);
-      });
-      
+      }
+      build();
     }
-
-
-
-
 
     // resizes multi task
     grunt.registerMultiTask('resizes', 'Resize images with ImageMagick.', function() {
@@ -84,7 +80,6 @@ module.exports = function(grunt) {
         options = this.options({
             progressive: false,
             force: false,
-            concurrency: 4,
             quality: 0.8,
             strip: true,
             sizes: [150, 250, 450]
@@ -93,7 +88,7 @@ module.exports = function(grunt) {
         grunt.verbose.writeflags(options, 'Options');
 
         // every file will be pushed in this queue
-        queue = grunt.util.async.queue(compile, options.concurrency);
+        queue = grunt.util.async.queue(compile, 1);
 
         queue.drain = function() {
             done();
